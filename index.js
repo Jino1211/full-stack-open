@@ -3,6 +3,12 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+app.use("/", express.static(`./build`));
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "./index.html");
+});
+
 let phoneBook = [
   {
     id: 1,
