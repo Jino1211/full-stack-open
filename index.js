@@ -7,70 +7,49 @@ app.use(express.json());
 
 app.use("/", express.static(`./build`));
 
-// let password = process.argv[2];
-// const url = `mongodb+srv://fullstack:${password}@cluster0.2qkv2.mongodb.net/phoneBook?retryWrites=true&w=majority`;
-// if (process.argv.length < 3) {
-//   console.log(process.argv.length);
-//   console.log(
-//     "Please provide the password as an argument: node mongo.js <password>"
-//   );
-//   process.exit(1);
-// }
-
-// const person = new Person({
-//   id: getRandomId(0, 10000),
-//   name: process.argv[3],
-//   number: process.argv[4],
-// });
-
-// if (!process.argv[3] && !process[4]) {
-//   Person.find({}).then((result) => {
-//     result.forEach((person) => {
-//       console.log(person);
-//     });
-//     mongoose.connection.close();
-//     process.exit(1);
-//   });
-// } else {
-//   person.save().then((result) => {
-//     console.log(`Added ${result} to phone book`);
-//     mongoose.connection.close();
-//   });
-// }
-
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "./index.html");
 });
 
 app.get("/api/persons", (request, response) => {
-  Person.find({}).then((person) => {
-    response.json(person);
-  });
+  Person.find({})
+    .then((person) => {
+      response.json(person);
+    })
+    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 });
 
 app.get("/api/info", (request, response) => {
-  Person.find({}).then((result) => {
-    response.send(`<div>${result.length} people.</div> <div> ${date} </div>`);
-  });
+  Person.find({})
+    .then((result) => {
+      response.send(
+        `${result.length} people. <br> ${new Date().toLocaleString} `
+      );
+    })
+    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 });
 
-app.get("/api/persons/:id", (request, response) => {
+app.get("/api/persons/:id", validId, (request, response) => {
   const id = Number(request.params.id);
-  Person.find({ id }).then((person) => {
-    if (person) {
-      response.json(person);
-    } else {
-      response.status(404).send("Not found");
-    }
-  });
+  Person.find({ id })
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response.status(404).send("Not found");
+      }
+    })
+    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 });
 
-app.delete("/api/persons/:id", (request, response) => {
+app.delete("/api/persons/:id", validId, (request, response) => {
   const id = Number(request.params.id);
 
-  Person.remove({ id }).then((res) => {
-    response.status(204).end();
-  });
+  Person.remove({ id })
+    .then((res) => {
+      response.status(204).end();
+    })
+    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 });
 
 // function that find the max id and increase by one
@@ -93,26 +72,40 @@ app.post("/api/persons/", (request, response) => {
     return response.status(400).json({ error: "number missing" });
   }
 
-  Person.find({ name: body.name }).then((person) => {
-    if (person) {
-      return response.status(400).json({ error: "name must be unique" });
-    }
-  });
+  Person.find({ name: body.name })
+    .then((person) => {
+      if (person) {
+        return response.status(400).json({ error: "name must be unique" });
+      }
+    })
+    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 
   const person = new Person({
-    id: getRandomId(0, 10000),
+    id: getRandomId(1, 10000),
     name: body.name,
     number: body.number,
   });
 
-  person.save().then((res) => {
-    response.json(res);
-  });
+  person
+    .save()
+    .then((res) => {
+      response.json(res);
+    })
+    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+function validId(req, res, next) {
+  const id = Number(req.params.id);
+  if (!id) {
+    res.status(400).json({ ERROR: "Invalid ID" });
+    return;
+  }
+  next();
+}
 
 module.exports = getRandomId;
