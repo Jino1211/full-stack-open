@@ -1,64 +1,76 @@
 const { response } = require("express");
 const express = require("express");
 const app = express();
-const mongoose = require("mongoose");
+const Person = require("./module/person");
+
 app.use(express.json());
 
 app.use("/", express.static(`./build`));
+
+// let password = process.argv[2];
+// const url = `mongodb+srv://fullstack:${password}@cluster0.2qkv2.mongodb.net/phoneBook?retryWrites=true&w=majority`;
+// if (process.argv.length < 3) {
+//   console.log(process.argv.length);
+//   console.log(
+//     "Please provide the password as an argument: node mongo.js <password>"
+//   );
+//   process.exit(1);
+// }
+
+// const person = new Person({
+//   id: getRandomId(0, 10000),
+//   name: process.argv[3],
+//   number: process.argv[4],
+// });
+
+// if (!process.argv[3] && !process[4]) {
+//   Person.find({}).then((result) => {
+//     result.forEach((person) => {
+//       console.log(person);
+//     });
+//     mongoose.connection.close();
+//     process.exit(1);
+//   });
+// } else {
+//   person.save().then((result) => {
+//     console.log(`Added ${result} to phone book`);
+//     mongoose.connection.close();
+//   });
+// }
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "./index.html");
 });
 
-let phoneBook = [
-  {
-    id: 1,
-    name: "eyal",
-    number: "0501230773",
-  },
-  {
-    id: 2,
-    name: "yair",
-    number: "0502340773",
-  },
-  {
-    id: 3,
-    name: "jino",
-    number: "0506780773",
-  },
-  {
-    id: 4,
-    name: "gil",
-    number: "0508880773",
-  },
-];
-
 app.get("/api/persons", (request, response) => {
-  response.json(phoneBook);
+  Person.find({}).then((person) => {
+    response.json(person);
+  });
 });
 
 app.get("/api/info", (request, response) => {
-  response.send(
-    `PhoneBook has info for ${phoneBook.length} people <br/>${new Date()}`
-  );
+  Person.find({}).then((result) => {
+    response.send(`<div>${result.length} people.</div> <div> ${date} </div>`);
+  });
 });
 
 app.get("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  const person = phoneBook.find((person) => person.id === id);
-
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+  Person.find({ id }).then((person) => {
+    if (person) {
+      response.json(person);
+    } else {
+      response.status(404).send("Not found");
+    }
+  });
 });
 
 app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  phoneBook = phoneBook.filter((person) => person.id !== id);
 
-  response.status(204).end();
+  Person.remove({ id }).then((res) => {
+    response.status(204).end();
+  });
 });
 
 // function that find the max id and increase by one
@@ -81,21 +93,24 @@ app.post("/api/persons/", (request, response) => {
     return response.status(400).json({ error: "number missing" });
   }
 
-  if (phoneBook.find((person) => person.name === body.name)) {
-    return response.status(400).json({ error: "name must be unique" });
-  }
+  Person.find({ name: body.name }).then((person) => {
+    if (person) {
+      return response.status(400).json({ error: "name must be unique" });
+    }
+  });
 
-  const person = {
-    id: getRandomId(phoneBook.length, 10000),
+  const person = new Person({
+    id: getRandomId(0, 10000),
     name: body.name,
     number: body.number,
-  };
-  phoneBook.push(person);
+  });
 
-  response.send(phoneBook);
+  person.save().then((res) => {
+    response.json(res);
+  });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
