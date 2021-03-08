@@ -1,5 +1,6 @@
 const { response } = require("express");
 const express = require("express");
+const { bodyParser } = require("json-server");
 const app = express();
 const Person = require("./module/person");
 
@@ -52,6 +53,21 @@ app.delete("/api/persons/:id", validId, (request, response) => {
     .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
 });
 
+app.put("/api/persons/:id", validId, (req, res) => {
+  const { id } = req.params;
+  console.log(req.body);
+
+  const person = {
+    id: id,
+    number: req.body.number,
+  };
+
+  Person.updateOne({ id }, person, { new: true }).then((update) => {
+    console.log("update success");
+    res.status(200).json(update);
+  });
+});
+
 // function that find the max id and increase by one
 function getRandomId(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
@@ -78,7 +94,7 @@ app.post("/api/persons/", (request, response) => {
         return response.status(400).json({ error: "name must be unique" });
       }
     })
-    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
+    .catch((e) => response.status(500).json({ ERROR: "Server Error" }));
 
   const person = new Person({
     id: getRandomId(1, 10000),
@@ -101,10 +117,9 @@ app.listen(PORT, () => {
 
 function validId(req, res, next) {
   const id = Number(req.params.id);
-  if (!id) {
-    res.status(400).json({ ERROR: "Invalid ID" });
-    return;
-  }
+
+  if (isNaN(id)) return res.status(400).json({ ERROR: "Invalid ID" });
+
   next();
 }
 
