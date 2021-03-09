@@ -17,17 +17,16 @@ app.get("/api/persons", (request, response) => {
     .then((person) => {
       response.json(person);
     })
-    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
+    .catch((e) => response.status(500).json({ ERROR: "Server Error" }));
 });
 
 app.get("/api/info", (request, response) => {
+  const date = new Date().toLocaleString();
   Person.find({})
     .then((result) => {
-      response.send(
-        `${result.length} people. <br> ${new Date().toLocaleString} `
-      );
+      response.send(`${result.length} people. <br> ${date} `);
     })
-    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
+    .catch((e) => response.status(500).json({ ERROR: "Server Error" }));
 });
 
 app.get("/api/persons/:id", validId, (request, response) => {
@@ -40,7 +39,7 @@ app.get("/api/persons/:id", validId, (request, response) => {
         response.status(404).send("Not found");
       }
     })
-    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
+    .catch((e) => response.status(500).json({ ERROR: "Server Error" }));
 });
 
 app.delete("/api/persons/:id", validId, (request, response) => {
@@ -50,7 +49,7 @@ app.delete("/api/persons/:id", validId, (request, response) => {
     .then((res) => {
       response.status(204).end();
     })
-    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
+    .catch((e) => response.status(500).json({ ERROR: "Server Error" }));
 });
 
 app.put("/api/persons/:id", validId, (req, res) => {
@@ -62,10 +61,16 @@ app.put("/api/persons/:id", validId, (req, res) => {
     number: req.body.number,
   };
 
-  Person.updateOne({ id }, person, { new: true }).then((update) => {
-    console.log("update success");
-    res.status(200).json(update);
-  });
+  Person.updateOne({ id }, person, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  })
+    .then((update) => {
+      console.log("update success");
+      res.status(200).json(update);
+    })
+    .catch((e) => console.log(e));
 });
 
 // function that find the max id and increase by one
@@ -107,7 +112,7 @@ app.post("/api/persons/", (request, response) => {
     .then((res) => {
       response.json(res);
     })
-    .catch((e) => res.status(500).json({ ERROR: "Server Error" }));
+    .catch((e) => response.status(500).json({ ERROR: "Server Error" }));
 });
 
 const PORT = process.env.PORT || 3000;
